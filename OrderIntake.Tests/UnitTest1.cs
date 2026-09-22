@@ -25,13 +25,35 @@ public class OrderServiceTests
     }
 
     [Fact]
-    public void Missing_OrderId_Should_Be_Rejected()
+    public void All_Errors_At_Once_Should_Be_Rejected()
     {
         var service = new OrderService();
 
         string json = """
         {
             "orderId":"",
+            "patientId":"",
+            "specimenId":"",
+            "specimenType":"xyz",
+            "priority":"bad",
+            "collectionDate":"2099-01-01",
+            "requestedTests":[]
+        }
+        """;
+
+        var result = service.Process(json);
+
+        Assert.Equal("Rejected", result.Status);
+    }
+
+    [Fact]
+    public void OrderId_Length_Test()
+    {
+        var service = new OrderService();
+
+        string json = """
+        {
+            "orderId":"123456789012345678901",
             "patientId":"PAT-505",
             "specimenId":"SP-9005",
             "specimenType":"blood",
@@ -47,19 +69,63 @@ public class OrderServiceTests
     }
 
     [Fact]
-    public void Long_OrderId_Should_Be_Rejected()
+    public void Future_Date_Should_Be_Rejected()
     {
         var service = new OrderService();
 
         string json = """
         {
-            "orderId":"123456789012345678901",
+            "orderId":"ORD-1005",
+            "patientId":"PAT-505",
+            "specimenId":"SP-9005",
+            "specimenType":"blood",
+            "priority":"urgent",
+            "collectionDate":"2099-01-01",
+            "requestedTests":["Glucose"]
+        }
+        """;
+
+        var result = service.Process(json);
+
+        Assert.Equal("Rejected", result.Status);
+    }
+
+    [Fact]
+    public void Duplicate_Requested_Tests_Should_Be_Rejected()
+    {
+        var service = new OrderService();
+
+        string json = """
+        {
+            "orderId":"ORD-1005",
             "patientId":"PAT-505",
             "specimenId":"SP-9005",
             "specimenType":"blood",
             "priority":"urgent",
             "collectionDate":"2025-09-18",
-            "requestedTests":["Glucose"]
+            "requestedTests":["CBC","cbc"]
+        }
+        """;
+
+        var result = service.Process(json);
+
+        Assert.Equal("Rejected", result.Status);
+    }
+
+    [Fact]
+    public void Empty_Requested_Tests_Should_Be_Rejected()
+    {
+        var service = new OrderService();
+
+        string json = """
+        {
+            "orderId":"ORD-1005",
+            "patientId":"PAT-505",
+            "specimenId":"SP-9005",
+            "specimenType":"blood",
+            "priority":"urgent",
+            "collectionDate":"2025-09-18",
+            "requestedTests":[]
         }
         """;
 
@@ -82,28 +148,6 @@ public class OrderServiceTests
             "priority":"urgent",
             "collectionDate":"2025-09-18",
             "requestedTests":["Glucose"]
-        }
-        """;
-
-        var result = service.Process(json);
-
-        Assert.Equal("Rejected", result.Status);
-    }
-
-    [Fact]
-    public void Duplicate_Tests_Should_Be_Rejected()
-    {
-        var service = new OrderService();
-
-        string json = """
-        {
-            "orderId":"ORD-1005",
-            "patientId":"PAT-505",
-            "specimenId":"SP-9005",
-            "specimenType":"blood",
-            "priority":"urgent",
-            "collectionDate":"2025-09-18",
-            "requestedTests":["CBC","cbc"]
         }
         """;
 
